@@ -1,0 +1,18 @@
+---
+- name: nxos | hardware
+  cisco.nxos.nxos_facts:
+    gather_subset:
+      - "hardware"
+  register: my_hw_facts
+  ignore_errors: true
+  tags:
+    - "hardware"
+
+- name: nxos | interfaces
+  cisco.nxos.nxos_facts:
+    gather_subset:
+      - "interfaces"
+  register: my_intf_facts
+  ignore_errors: true
+  tags:
+    - "interfaces"

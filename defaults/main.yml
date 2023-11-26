@@ -1,0 +1,15 @@
+---
+# defaults file for ansible-network-facts
+
+# !!! ouput directory settings !!!
+output_dir: "output/ansible_network_facts"
+output_inv_dir: "{{ output_dir }}/{{ inventory_dir | regex_replace('^.+env') }}"
+
+# !!! mail settings !!!
+send_mail: false
+mail_host: ""
+mail_port: ""
+mail_username: ""
+mail_password: ""
+mail_from: ""
+mail_to: ""

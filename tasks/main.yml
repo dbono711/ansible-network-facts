@@ -1,0 +1,138 @@
+---
+# tasks file for ansible-network-facts
+- name: main | Delete output directory
+  ansible.builtin.file:
+    path: "{{ output_dir }}"
+    state: absent
+  run_once: true
+  delegate_to: 127.0.0.1
+  tags:
+    - "always"
+
+- name: main | Create output directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ output_dir }}"
+    - "{{ output_dir }}/archive"
+    - "{{ output_dir }}/assembled"
+  run_once: true
+  delegate_to: 127.0.0.1
+  tags:
+    - "always"
+
+- name: main | Template header
+  ansible.builtin.template:
+    src: "header.j2"
+    dest: "{{ output_dir }}/$header.csv"
+    mode: '0755'
+  run_once: true
+  delegate_to: 127.0.0.1
+  tags:
+    - "always"
+
+- name: main | ping
+  ansible.builtin.command: "ping -c 1 -W 2 {{ ansible_host }}"
+  register: my_facts_ping
+  ignore_errors: true
+  delegate_to: 127.0.0.1
+  tags:
+    - "always"
+
+- name: main | ports
+  network_port_check:
+    host: "{{ ansible_host }}"
+  register: my_facts_ports
+  ignore_errors: true
+  when: not my_facts_ping.failed
+  delegate_to: 127.0.0.1
+  tags:
+    - "ports"
+
+- name: main | IOS facts
+  ansible.builtin.include_tasks: "ios.yml"
+  when: "ansible_network_os == 'ios' and not my_facts_ping.failed"
+  tags:
+    - "hardware"
+    - "interfaces"
+
+- name: main | NX-OS facts
+  ansible.builtin.include_tasks: "nxos.yml"
+  when: "ansible_network_os == 'nxos' and not my_facts_ping.failed"
+  tags:
+    - "hardware"
+    - "interfaces"
+
+- name: main | IOS-XR facts
+  ansible.builtin.include_tasks: "iosxr.yml"
+  when: "ansible_network_os == 'iosxr' and not my_facts_ping.failed"
+  tags:
+    - "hardware"
+    - "interfaces"
+
+- name: main | JUNOS facts
+  ansible.builtin.include_tasks: "junos.yml"
+  when: "ansible_network_os == 'junos' and not my_facts_ping.failed"
+  tags:
+    - "hardware"
+    - "interfaces"
+
+- name: main | Template facts for individual hosts
+  ansible.builtin.template:
+    src: "facts.j2"
+    dest: "{{ output_dir }}/{{ inventory_hostname }}_facts.csv"
+    mode: '0755'
+  delegate_to: 127.0.0.1
+  tags:
+    - "always"
+
+- name: main | Assemble individual facts
+  ansible.builtin.assemble:
+    src: "{{ output_dir }}"
+    dest: "{{ output_dir }}/assembled/ansible_network_facts.csv"
+    mode: '0755'
+  run_once: true
+  delegate_to: 127.0.0.1
+  tags:
+    - "always"
+
+- name: main | Archive assembled results
+  community.general.archive:
+    path: "{{ output_dir }}/assembled/"
+    dest: "{{ output_dir }}/archive/ansible_network_facts.zip"
+    mode: '0755'
+    format: zip
+  run_once: true
+  delegate_to: 127.0.0.1
+  tags:
+    - "always"
+
+- name: main | Send e-mail
+  when: "send_mail is defined and send_mail"
+  run_once: true
+  delegate_to: 127.0.0.1
+  tags:
+    - "always"
+  block:
+    - name: main | Assert that mail settings are present
+      ansible.builtin.assert:
+        that:
+          - "mail_host is defined and mail_host"
+          - "mail_port is defined and mail_port"
+        quiet: true
+
+    - name: main | Generate e-mail with results
+      community.general.mail:
+        host: "{{ mail_host }}"
+        port: "{{ mail_port }}"
+        username: "{{ mail_username }}"
+        password: "{{ mail_password }}"
+        subject: Network Facts Report
+        subtype: html
+        body: '<p>Network Facts Report completed successfully. Please refer to the attachment.</p>'
+        from: "{{ mail_from }}"
+        to: "{{ mail_to }}"
+        attach:
+          - "{{ output_dir }}/archive/ansible_network_facts.zip"

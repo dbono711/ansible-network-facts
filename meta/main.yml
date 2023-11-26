@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: Darren Bono
+  description: Network device facts collection
+  role_name: ansible_network_facts
+  namespace: dbono711
+  license: MIT
+  min_ansible_version: "2.9"
+  galaxy_tags:
+    - networking
+    - automation

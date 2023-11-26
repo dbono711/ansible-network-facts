@@ -1,0 +1,91 @@
+{# SET VARIABLES #}
+{% set host = inventory_hostname -%}
+{% set ip = ansible_host | default ('') -%}
+{% set os = ansible_network_os | default ('') -%}
+{% set ping = {'status': ''} -%}
+{% set ssh = {'status': ''} -%}
+{% set telnet = {'status': ''} -%}
+{% set netconf = {'status': ''} -%}
+{% set model = {'model': ''} -%}
+{% set version = {'version': ''} -%}
+{% set image = {'image': ''} -%}
+{% set serial_num = {'serial_num': ''} -%}
+
+{# PING #}
+{% if my_facts_ping is defined and my_facts_ping.failed -%}
+    {% do ping.update({'status': 'FAILED'}) -%}
+{% else -%}
+    {% do ping.update({'status': 'OK'}) -%}
+{% endif -%}
+
+{# PORTS #}
+{% if my_facts_ports is defined and not my_facts_ports.skipped is defined -%}
+    {% do ssh.update({'status': my_facts_ports['meta']['ports'][0]}) -%}
+    {% do telnet.update({'status': my_facts_ports['meta']['ports'][1]}) -%}
+    {% do netconf.update({'status': my_facts_ports['meta']['ports'][2]}) -%}
+{% endif -%}
+
+{# HW FACTS #}
+{% if my_hw_facts is defined and not my_hw_facts.skipped is defined -%}
+    {% if my_hw_facts.failed -%}
+        {% do model.update({'model': my_hw_facts.msg}) -%}
+        {% do version.update({'version': 'UNK'}) -%}
+        {% do image.update({'image': 'UNK'}) -%}
+        {% do serial_num.update({'serial_num': 'UNK'}) -%}
+    {% else -%}
+        {% do model.update({'model': my_hw_facts['ansible_facts']['ansible_net_model'] | default('N/A')}) -%}
+        {% do version.update({'version': my_hw_facts['ansible_facts']['ansible_net_version'] | default('N/A')}) -%}
+        {% do image.update({'image': my_hw_facts['ansible_facts']['ansible_net_image'] | default('N/A')}) -%}
+        {% do serial_num.update({'serial_num': my_hw_facts['ansible_facts']['ansible_net_serialnum'] | default('N/A')}) -%}
+    {% endif -%}
+{% endif -%}
+
+{# INTERFACES AND TEMPLATING #}
+{% if my_intf_facts['ansible_facts']['ansible_net_interfaces'] is defined -%}
+    {% for local_intf, local_intf_value in my_intf_facts['ansible_facts']['ansible_net_interfaces'].items() -%}
+        {% set neighbor_host = {'neighbor_host': ''} -%}
+        {% set neighbor_model = {'neighbor_model': ''} -%}
+        {% set neighbor_intf = {'neighbor_intf': ''} -%}
+        {% set intf = {'intf': ''} -%}
+        {% set intf_type = {'intf_type': ''} -%}
+        {% set intf_state = {'intf_state': ''} -%}
+        {% set intf_desc = {'intf_desc': ''} -%}
+        {% set intf_ipv4 = {'intf_ipv4': ''} -%}
+
+        {% if ansible_network_os == 'ios' or ansible_network_os == 'nxos' or ansible_network_os == 'iosxr' -%}
+            {% do intf.update({'intf': local_intf}) -%}
+            {% do intf_type.update({'intf_type': local_intf_value.get('type')}) -%}
+            
+            {% if ansible_network_os == 'ios' or ansible_network_os == 'iosxr' -%}
+                {% do intf_state.update({'intf_state': local_intf_value.get('operstatus')}) -%}
+            {% elif ansible_network_os == 'nxos' -%}
+                {% do intf_state.update({'intf_state': local_intf_value.get('state')}) -%}
+            {% endif -%}
+
+            {% do intf_desc.update({'intf_desc': local_intf_value.get('description')}) -%}
+
+            {% if ansible_network_os == 'ios' -%}
+                {% do intf_ipv4.update({'intf_ipv4': "{}/{}".format(local_intf_value.ipv4[0].address, local_intf_value.ipv4[0].subnet) | default('N/A')}) if local_intf_value.ipv4[0].address is defined -%}
+            {% elif ansible_network_os == 'iosxr' or ansible_network_os == 'nxos' -%}
+                {% do intf_ipv4.update({'intf_ipv4': "{}/{}".format(local_intf_value.ipv4.address, local_intf_value.ipv4.masklen) | default('N/A')}) if local_intf_value.ipv4.address is defined -%}
+            {% endif -%}
+
+            {% if my_intf_facts['ansible_facts']['ansible_net_neighbors'] is defined -%}
+                {% for neigh_intf, neigh_intf_value in my_intf_facts['ansible_facts']['ansible_net_neighbors'].items() -%}
+                    {% if neigh_intf == local_intf -%}
+                        {% do neighbor_host.update({'neighbor_host': neigh_intf_value[0].host}) -%}
+                        {% do neighbor_model.update({'neighbor_model': neigh_intf_value[0].platform}) if neigh_intf_value[0].platform is defined -%}
+                        {% do neighbor_intf.update({'neighbor_intf': neigh_intf_value[0].port}) -%}
+                    {% endif -%}
+                {% endfor -%}
+            {% endif -%}
+
+        {% elif ansible_network_os == 'junos' -%} {# requires further manipulation as some dictionary key's contain dashes (-) which Python does not like #}
+            {% do intf.update({'intf': local_intf}) -%}
+            {% do intf_type.update({'intf_type': local_intf_value.get('type')}) -%}
+        {% endif -%}
+            {{ host }},{{ ip }},{{ os }},{{ ping.status }},{{ ssh.status }},{{ telnet.status }},{{ netconf.status }},{{ model.model }},{{ version.version }},{{ image.image }},{{ serial_num.serial_num }},{{ intf.intf }},{{ intf_type.intf_type }},{{ intf_state.intf_state }},{{ intf_desc.intf_desc }},{{ intf_ipv4.intf_ipv4 }},{{ neighbor_host.neighbor_host }},{{ neighbor_model.neighbor_model }},{{ neighbor_intf.neighbor_intf }}
+    {% endfor -%}
+{% else -%}
+    {{ host }},{{ ip }},{{ os }},{{ ping.status }},{{ ssh.status }},{{ telnet.status }},{{ netconf.status }},{{ model.model }},{{ version.version }},{{ image.image }},{{ serial_num.serial_num }}
+{% endif -%}
