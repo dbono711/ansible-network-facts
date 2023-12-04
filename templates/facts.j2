@@ -10,8 +10,7 @@
 {% set version = {'version': ''} -%}
 {% set image = {'image': ''} -%}
 {% set serial_num = {'serial_num': ''} -%}
-
-{# PING #}
+{% set nso_status = {'status': ''} -%}
 {% if my_facts_ping is defined and my_facts_ping.failed -%}
     {% do ping.update({'status': 'FAILED'}) -%}
 {% else -%}
@@ -28,10 +27,7 @@
 {# HW FACTS #}
 {% if my_hw_facts is defined and not my_hw_facts.skipped is defined -%}
     {% if my_hw_facts.failed -%}
-        {% do model.update({'model': my_hw_facts.msg}) -%}
-        {% do version.update({'version': 'UNK'}) -%}
-        {% do image.update({'image': 'UNK'}) -%}
-        {% do serial_num.update({'serial_num': 'UNK'}) -%}
+        {% do model.update({'model': my_hw_facts.msg | replace('\n', ' ')}) -%}
     {% else -%}
         {% do model.update({'model': my_hw_facts['ansible_facts']['ansible_net_model'] | default('N/A')}) -%}
         {% do version.update({'version': my_hw_facts['ansible_facts']['ansible_net_version'] | default('N/A')}) -%}
@@ -55,7 +51,7 @@
         {% if ansible_network_os == 'ios' or ansible_network_os == 'nxos' or ansible_network_os == 'iosxr' -%}
             {% do intf.update({'intf': local_intf}) -%}
             {% do intf_type.update({'intf_type': local_intf_value.get('type')}) -%}
-            
+
             {% if ansible_network_os == 'ios' or ansible_network_os == 'iosxr' -%}
                 {% do intf_state.update({'intf_state': local_intf_value.get('operstatus')}) -%}
             {% elif ansible_network_os == 'nxos' -%}
@@ -79,13 +75,13 @@
                     {% endif -%}
                 {% endfor -%}
             {% endif -%}
-
-        {% elif ansible_network_os == 'junos' -%} {# requires further manipulation as some dictionary key's contain dashes (-) which Python does not like #}
+        
+        {% elif ansible_network_os == 'junos' -%} {# requires further manipulation as some dictionary key's contain dashes () which Python does not like #}
             {% do intf.update({'intf': local_intf}) -%}
             {% do intf_type.update({'intf_type': local_intf_value.get('type')}) -%}
         {% endif -%}
-            {{ host }},{{ ip }},{{ os }},{{ ping.status }},{{ ssh.status }},{{ telnet.status }},{{ netconf.status }},{{ model.model }},{{ version.version }},{{ image.image }},{{ serial_num.serial_num }},{{ intf.intf }},{{ intf_type.intf_type }},{{ intf_state.intf_state }},{{ intf_desc.intf_desc }},{{ intf_ipv4.intf_ipv4 }},{{ neighbor_host.neighbor_host }},{{ neighbor_model.neighbor_model }},{{ neighbor_intf.neighbor_intf }}
+        {{ host }},{{ ip }},{{ os }},{{ ping.status }},{{ nso_status.status }},{{ ssh.status }},{{ telnet.status }},{{ netconf.status }},{{ model.model }},{{ version.version }},{{ image.image }},{{ serial_num.serial_num }},{{ intf.intf }},{{ intf_type.intf_type }},{{ intf_state.intf_state }},{{ intf_desc.intf_desc }},{{ intf_ipv4.intf_ipv4 }},{{ neighbor_host.neighbor_host }},{{ neighbor_model.neighbor_model }},{{ neighbor_intf.neighbor_intf }}
     {% endfor -%}
 {% else -%}
-    {{ host }},{{ ip }},{{ os }},{{ ping.status }},{{ ssh.status }},{{ telnet.status }},{{ netconf.status }},{{ model.model }},{{ version.version }},{{ image.image }},{{ serial_num.serial_num }}
+    {{ host }},{{ ip }},{{ os }},{{ ping.status }},{{ nso_status.status }},{{ ssh.status }},{{ telnet.status }},{{ netconf.status }},{{ model.model }},{{ version.version }},{{ image.image }},{{ serial_num.serial_num }}
 {% endif -%}

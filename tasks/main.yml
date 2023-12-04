@@ -84,6 +84,7 @@
     src: "facts.j2"
     dest: "{{ output_dir }}/{{ inventory_hostname }}_facts.csv"
     mode: '0755'
+    lstrip_blocks: true
   delegate_to: 127.0.0.1
   tags:
     - "always"
