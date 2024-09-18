@@ -124,16 +124,16 @@
           - "mail_port is defined and mail_port"
         quiet: true
 
-    - name: main | Generate e-mail with results
-      community.general.mail:
-        host: "{{ mail_host }}"
-        port: "{{ mail_port }}"
-        username: "{{ mail_username }}"
-        password: "{{ mail_password }}"
-        subject: Network Facts Report
-        subtype: html
-        body: '<p>Network Facts Report completed successfully. Please refer to the attachment.</p>'
-        from: "{{ mail_from }}"
-        to: "{{ mail_to }}"
-        attach:
-          - "{{ output_dir }}/archive/ansible_network_facts.zip"
+    # - name: main | Generate e-mail with results
+    #   community.general.mail:
+    #     host: "{{ mail_host }}"
+    #     port: "{{ mail_port }}"
+    #     username: "{{ mail_username }}"
+    #     password: "{{ mail_password }}"
+    #     subject: Network Facts Report
+    #     subtype: html
+    #     body: '<p>Network Facts Report completed successfully. Please refer to the attachment.</p>'
+    #     from: "{{ mail_from }}"
+    #     to: "{{ mail_to }}"
+    #     attach:
+    #       - "{{ output_dir }}/archive/ansible_network_facts.zip"

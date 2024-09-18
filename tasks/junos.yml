@@ -1,6 +1,6 @@
 ---
 - name: junos | hardware
-  junos_facts:
+  junipernetworks.junos.junos_facts:
     gather_subset:
       - "hardware"
   register: my_hw_facts
@@ -9,7 +9,7 @@
     - "hardware"
 
 - name: junos | interfaces
-  junos_facts:
+  junipernetworks.junos.junos_facts:
     gather_subset:
       - "interfaces"
   register: my_intf_facts

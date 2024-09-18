@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Docstring missing."""
 
 __author__ = "Darren Bono"
@@ -6,7 +5,6 @@ __email__ = "dbono215@gmail.com"
 __version__ = "1.0"
 
 import socket
-import subprocess
 
 from ansible.module_utils.basic import *
 
@@ -42,8 +40,8 @@ def getHostDetails(host):
 def main():
     """Docstring missing."""
     fields = {
-        "host": { "default": "True", "type": "str" },
-        "ports": { "default": "True", "type": "str" }
+        "host": {"default": "True", "type": "str"},
+        "ports": {"default": "True", "type": "str"},
     }
 
     result = dict(changed=True)
@@ -53,5 +51,5 @@ def main():
     module.exit_json(**result, meta=module.params)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
